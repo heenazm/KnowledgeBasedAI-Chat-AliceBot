@@ -1,0 +1,29 @@
+diff --git a/mediaelements/mediawelcome/BackendsListDelegate.qml b/mediaelements/mediawelcome/BackendsListDelegate.qml
+index e76af63..4840982 100644
+--- a/mediaelements/mediawelcome/BackendsListDelegate.qml
++++ b/mediaelements/mediawelcome/BackendsListDelegate.qml
+@@ -59,7 +59,6 @@ Item {
+         HomeScreenText {
+             height: parent.height
+             width: parent.width - backendIcon.width - parent.spacing
+-
+             wrapMode: Text.Wrap
+             maximumLineCount: 2
+             elide: Text.ElideRight
+diff --git a/mediaelements/mediawelcome/HomeScreenText.qml b/mediaelements/mediawelcome/HomeScreenText.qml
+index 35cd20a..6077164 100644
+--- a/mediaelements/mediawelcome/HomeScreenText.qml
++++ b/mediaelements/mediawelcome/HomeScreenText.qml
+@@ -18,10 +18,10 @@
+  ***************************************************************************/
+ 
+ import QtQuick 1.1
++import org.kde.plasma.components 0.1 as PlasmaComponents
+ 
+-Text {
++PlasmaComponents.Label {
+     verticalAlignment: Text.AlignVCenter
+-    color: theme.textColor
+     smooth: true
+     style: Text.Raised
+ }

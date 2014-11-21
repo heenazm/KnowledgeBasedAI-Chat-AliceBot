@@ -1,0 +1,79 @@
+diff --git a/mediaelements/mediawelcome/BackendsListDelegate.qml b/mediaelements/mediawelcome/BackendsListDelegate.qml
+index e76af63..4840982 100644
+--- a/mediaelements/mediawelcome/BackendsListDelegate.qml
++++ b/mediaelements/mediawelcome/BackendsListDelegate.qml
+@@ -59,7 +59,6 @@ Item {
+         HomeScreenText {
+             height: parent.height
+             width: parent.width - backendIcon.width - parent.spacing
+-
+             wrapMode: Text.Wrap
+             maximumLineCount: 2
+             elide: Text.ElideRight
+diff --git a/mediaelements/mediawelcome/HomeScreenFooter.qml b/mediaelements/mediawelcome/HomeScreenFooter.qml
+index d2c0eb7..24750d5 100644
+--- a/mediaelements/mediawelcome/HomeScreenFooter.qml
++++ b/mediaelements/mediawelcome/HomeScreenFooter.qml
+@@ -18,9 +18,23 @@
+  ***************************************************************************/
+ 
+ import QtQuick 1.1
++import org.kde.plasma.core 0.1 as PlasmaCore
++import org.kde.plasma.components 0.1 as PlasmaComponents
++import org.kde.locale 0.1
+ 
+ Item {
+     property alias text: footerText.text
++
++    Locale {
++        id: locale
++    }
++
++    PlasmaCore.DataSource {
++        id: dataSource
++        engine: "time"
++        connectedSources: ["Local"]
++        interval: 500
++    }
+     HomeScreenText {
+         id: footerText
+         anchors.verticalCenter: parent.verticalCenter
+@@ -28,29 +42,13 @@ Item {
+         font.pointSize: 16
+     }
+ 
+-     Timer {
+-         interval: 1000; running: true; repeat: true
+-         onTriggered: {
+-             var d = new Date();
+-	     var minutes = d.getMinutes();
+-	     var hours = d.getHours();
+-	     var timeOfDay = hours > 12 ? 'PM' : 'AM';
+-
+-	     if (minutes < 10)
+-	     {
+-		  minutes = '0' + minutes;
+-	     }
+-
+-	     hours = hours % 12;
+-
+-	     headerTimeText.text = hours + ':' + minutes + ' ' + timeOfDay;
+-         }
+-     }
+-
+-     HomeScreenText {
+-         id: headerTimeText
+-         anchors.verticalCenter: parent.verticalCenter
+-         anchors { right: parent.right; margins: 20 }
+-         font.pointSize: 20
+-     }
++    HomeScreenText {
++        id: headerTimeText
++        text : Qt.formatDate( dataSource.data["Local"]["Date"],"dddd dd MMM yyyy" )
++        +"\n"
++        + locale.formatLocaleTime( dataSource.data["Local"]["Time"], Locale.TimeWithoutSeconds )
++        anchors.verticalCenter: parent.verticalCenter
++        anchors { right: parent.right; margins: 20 }
++        font.pointSize: 20
++    }
+ }

@@ -1,0 +1,37 @@
+diff --git a/qml/calendar/calendar.h b/qml/calendar/calendar.h
+index 46f4e4e..97da4b4 100644
+--- a/qml/calendar/calendar.h
++++ b/qml/calendar/calendar.h
+@@ -69,7 +69,9 @@ public:
+ 
+     // QML invokables
+     Q_INVOKABLE void next();
++    Q_INVOKABLE void nextyear();
+     Q_INVOKABLE void previous();
++    Q_INVOKABLE void previousyear();
+     
+ signals:
+     void startDateChanged();
+diff --git a/qml/calendar/calendar.cpp b/qml/calendar/calendar.cpp
+index c7ffe12..6e499b2 100644
+--- a/qml/calendar/calendar.cpp
++++ b/qml/calendar/calendar.cpp
+@@ -201,6 +201,18 @@ void Calendar::next()
+     emit monthNameChanged();
+     emit yearChanged();
+ }
++void Calendar::nextyear()
++{
++    m_startDate = m_startDate.addYears(1);
++    updateData();
++    emit yearChanged();
++}
++void Calendar::previousyear()
++{
++    m_startDate = m_startDate.addYears(-1);
++    updateData();
++    emit yearChanged();
++}
+ 
+ void Calendar::previous()
+ {
