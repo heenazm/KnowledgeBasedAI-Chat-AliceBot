@@ -15,105 +15,204 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import QtQuick 1.1
+import Qt 4.7
 import org.kde.plasma.core 0.1 as PlasmaCore
-import org.kde.plasma.components 0.1 as Components
-import org.kde.qtextracomponents 0.1
-import org.kde.dirmodel 0.1
+import org.kde.plasma.components 0.1 as PlasmaComponents
 
 Item {
-    id:root
+    id: main
+    property int minimumWidth: Math.max(100, windowListMenu.implicitWidth) 
+    property int minimumHeight:  Math.max(100, windowListMenu.implicitHeight) 
+    property int maximumWidth
+    property int maximumHeight
+    property alias data: tasksSource.data;
+    property variant desktopList: []
+    property int iconSize: theme.smallMediumIconSize 
+    property int defaultMargin:0
+    property bool showDesktop: true
     
-    property int minimumWidth:formFactor == Horizontal ? height : 1
-    property int minimumHeight:formFactor == Vertical ? width  : 1
-    property int formFactor: plasmoid.formFactor
-    property bool constrained:formFactor==Vertical||formFactor==Horizontal
-    
-    DirModel {
-        id:dirModel
-        url: "trash:/"
+    function executeJob(operationName, source) {
+        var service = tasksSource.serviceForSource(source);
+        var operation = service.operationDescription(operationName);
+        service.startOperationCall(operation);
     }
     
-    Connections {
-        target: plasmoid
-        onFormFactorChanged: {
-            root.formFactor = plasmoid.formFactor
-            if(root.formFactor==Planar || root.formFactor == MediaCenter )
-            {
-               minimumWidth=root.width/3.5
-               minimumHeight=root.height/3.5
+    function setOnDesktop(source, desktop) {
+        var service = tasksSource.serviceForSource(source);
+        var operation = service.operationDescription("toDesktop");
+        operation.desktop = desktop;
+        service.startOperationCall(operation);
+    }
+    Component.onCompleted: {
+            var toolTipData = new Object;
+            toolTipData["image"] = "preferences-system-window"; 
+            toolTipData["mainText"] = i18n("Window List"); 
+            toolTipData["subText"] = i18n("Show list of opened windows");
+            plasmoid.popupIconToolTip = toolTipData;
+            plasmoid.popupIcon = QIcon("preferences-system-windows"); 
+            plasmoid.aspectRatioMode = IgnoreAspectRatio;
+    }
+    PlasmaCore.DataSource {
+        id: tasksSource
+        engine: "tasks"
+        onSourceAdded: {
+            connectSource(source);
+        }
+        Component.onCompleted: {
+            connectedSources = sources;
+            connectSource("virtualDesktops");
+            main.desktopList = tasksSource.data["virtualDesktops"]["names"];
+        }
+    }
+    PlasmaCore.SortFilterModel {
+        id: tasksModelSortedByDesktop
+        sortRole: "desktop"
+        sourceModel: tasksModel
+    }
+    PlasmaCore.SortFilterModel { 
+        id: tasksModel
+        sourceModel: PlasmaCore.DataModel {
+            dataSource: tasksSource
+        }
+    }
+    Menu {
+        id: windowListMenu
+        anchors.top:parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: main.defaultMargin
+        clip: true;
+        model: tasksModelSortedByDesktop
+        section.property: "desktop"
+        section.criteria: ViewSection.FullString
+        section.delegate: TextStyle {
+            width: parent.width
+            text: tasksSource.data[section]["Name"]
+        }
+        iconSize: main.iconSize
+        showDesktop: main.showDesktop
+        onItemSelected: main.executeJob("activate", source);
+        onExecuteJob: main.executeJob(jobName, source);
+        onSetOnDesktop: main.setOnDesktop(source, desktop);
+                highlight: PlasmaComponents.Highlight {
+            PlasmaCore.FrameSvgItem {
+                id:background4
+                imagePath:"widgets/viewitem"
+                prefix:"selected+hover"
+                height:50
+                width:  windowListMenu.width - 2 *  windowListMenu.anchors.leftMargin
             }
         }
-    }
-
-    function action_open() {
-        plasmoid.openUrl("trash:/");
-    }
-
-    function action_empty() {
-        emptyDialog=emptyDialogComponent.createObject(root);
-        emptyDialog.open();
-    }
-    
-    Component.onCompleted: { 
-        plasmoid.setBackgroundHints( 0 )
-        plasmoid.action_open = function() {
-            plasmoid.openUrl("trash:/");
-        }
-        plasmoid.setAction("open", i18n("Open"),"document-open");
-        plasmoid.action_empty=function() {
-             emptyDialog=emptyDialogComponent.createObject(root);
-             emptyDialog.open();
-        }
-        plasmoid.setAction("empty",i18n("Empty"),"trash-empty");
-        plasmoid.popupIcon = QIcon("user-trash");
-        plasmoid.aspectRatioMode = IgnoreAspectRatio;
-    }
-    
-    MouseArea {
-        id: mouseArea
-        hoverEnabled: true
-        onReleased: plasmoid.openUrl("trash:/");
-        anchors.fill:parent
-        PlasmaCore.IconItem {
-            id:icon
-            source: (dirModel.count > 0) ? "user-trash-full" : "user-trash"
-            anchors{
-                left:parent.left
-                right:parent.right
-                top:parent.top
-                bottom:constrained?parent.bottom:text.top
+        Column {
+            spacing:0
+            Rectangle {
+                width: windowListMenu.width
+                height:20
+                color:"lightgrey"
+                PlasmaCore.FrameSvgItem {
+                    id:background2
+                    imagePath:"widgets/viewitem"
+                    prefix:"selected+hover"
+                    width: windowListMenu.width
+                    height:20
+                }
+                border.width:5
+                radius:10
+                border.color:"transparent"
+                PlasmaComponents.Label {
+                    id:actions
+                    text:"Actions"
+                    anchors {
+                        centerIn:parent
+                    }
+                }
             }
-            active:mouseArea.containsMouse
-        }
-        Components.Label {
-            id:text
-            text: (dirModel.count==0)?i18n(" Trash\nEmpty"):(dirModel.count==1)?i18n(" Trash\nOne item"):i18n(" Trash\n"+ dirModel.count +"items")
-            anchors {
-                left:parent.left
-                bottom:parent.bottom
-                right:parent.right
+            Rectangle {
+                width: windowListMenu.width
+                height:20
+                color:"transparent"
+                PlasmaComponents.Label {
+                    id:unclutter
+                    text:"Unclutter Windows"
+                    anchors {
+                        left:parent.left
+                    }
+                }
+                MouseArea {
+                    id: mouse
+                    hoverEnabled: true
+                    onClicked: {
+                        if (data['active']) {
+                            var unclutterId = tasksSource["DataEngineSource"]
+                            var service = tasksSource.serviceForSource("unclutterId")
+                            var operation = service.operationDescription("restore")
+                            service.startOperationCall(operation)
+                        }
+                    }
+                    anchors.fill:parent 
+                    onEntered: {
+                        unclutter.opacity = 0.5
+                    }
+                    onExited: {
+                        unclutter.opacity = 1
+                    }
+                }
             }
-            horizontalAlignment:Text.AlignHCenter
-            opacity:constrained ? 0 : 1
-        }
-        PlasmaCore.ToolTip {
-            target: mouseArea
-            mainText:"Trash"
-            subText: (dirModel.count==0)?i18n("Trash \n Empty"):(dirModel.count==1)?i18n("Trash \n One item"):i18n("Trash \n "+ dirModel.count +"items") 
-            image: (dirModel.count > 0) ? "user-trash-full" : "user-trash"
-        }
-    }
-    
-    Component {
-        id:emptyDialogComponent
-        Components.QueryDialog {
-            id:queryDialog
-            titleIcon:"user-trash"
-            titleText:i18n("Empty Trash")
-            message:i18n("Do you really want to empty the trash ? All the items will be deleted.")
-            acceptButtonText:i18n("Empty Trash")
-            rejectButtonText:i18n("Cancel")
-            onAccepted:plasmoid.runCommand("ktrash", ["--empty"]);
+            Rectangle {
+                width: windowListMenu.width
+                height:20
+                color:"transparent"
+                PlasmaComponents.Label {
+                    id:cascade
+                    text:"Cascade Windows"
+                    anchors {
+                        left:parent.left
+                    }
+                }
+                MouseArea {
+                    id: mouseArea
+                    hoverEnabled: true
+                    onClicked: {
+                        if (data['active']) {
+                            var cascadeId = tasksSource["DataEngineSource"]
+                            var service = tasksSource.serviceForSource("cascadeId")
+                            var operation = service.operationDescription("raise")
+                            service.startOperationCall(operation)
+                        }
+                    }
+                    anchors.fill:parent
+                    onEntered: {
+                        cascade.opacity = 0.5
+                    }
+                    onExited: {
+                        cascade.opacity = 1
+                    }
+                }
+            }
+            Rectangle {
+                id:rect1
+                width: windowListMenu.width
+                height:20
+                color:"lightgrey"
+                PlasmaCore.FrameSvgItem {
+                    id:background1
+                    imagePath:"widgets/viewitem"
+                    prefix:"selected+hover"
+                    width: windowListMenu.width
+                    height:20
+                }
+                border.width:5
+                radius:10
+                border.color:"transparent"
+                PlasmaComponents.Label {
+                    id: subLabelDesktop
+                    height: label.height
+                    font.pointSize: theme.smallestFont.pointSize
+                    visible: showDesktop
+                    anchors.centerIn:parent
+                }
+            }
         }
     }
 }
